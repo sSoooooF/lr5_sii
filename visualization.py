@@ -1,5 +1,7 @@
 import pygame
 import sys
+
+
 class Visualization:
     def __init__(self, grid, person, car):
         self.grid = grid
@@ -13,13 +15,6 @@ class Visualization:
         pygame.display.set_caption("Car Assembly Simulation")
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 24)
-        self.parts_positions = {
-            'wheels': (10, 10),
-            'battery': (0, 12),
-            'headlights': (5, 14),
-            'gas': (14, 5),
-            'spark_plugs': (17, 7)
-        }
 
     def draw_grid(self):
         self.screen.fill((255, 255, 255))
@@ -39,7 +34,7 @@ class Visualization:
 
     def draw_parts(self):
         # Визуализация деталей
-        for part, position in self.parts_positions.items():
+        for part, position in self.person.parts_positions.items():
             if part == 'wheels':
                 color = (0, 0, 255)
                 size = 20
@@ -56,21 +51,29 @@ class Visualization:
                 color = (128, 128, 0)
                 size = 60
 
-            pygame.draw.rect(self.screen, color, (position[0] * self.cell_size + self.cell_size // 2 - size // 2, position[1] * self.cell_size + self.cell_size // 2 - size // 2, size, size))
+            if part in self.person.inventory:
+                # Деталь находится в инвентаре, рисуем ее рядом с человеком
+                pygame.draw.rect(self.screen, color, (self.person.x * self.cell_size + self.cell_size // 2 - size // 2, self.person.y * self.cell_size + self.cell_size // 2 - size // 2, size, size))
+            else:
+                # Деталь находится на карте, рисуем ее по ее позиции
+                pygame.draw.rect(self.screen, color, (position[0] * self.cell_size + self.cell_size // 2 - size // 2, position[1] * self.cell_size + self.cell_size // 2 - size // 2, size, size))
 
         # Подписи для деталей
-        wheels_text = self.font.render("Wheels", True, (0, 0, 0))
-        battery_text = self.font.render("Battery", True, (0, 0, 0))
-        headlights_text = self.font.render("Headlights", True, (0, 0, 0))
-        gas_text = self.font.render("Gas", True, (0, 0, 0))
-        spark_plugs_text = self.font.render("Spark Plugs", True, (0, 0, 0))
+        for part, position in self.person.parts_positions.items():
+            if part not in self.person.inventory:
+                if part == 'wheels':
+                    text = self.font.render("Wheels", True, (0, 0, 0))
+                elif part == 'battery':
+                    text = self.font.render("Battery", True, (0, 0, 0))
+                elif part == 'headlights':
+                    text = self.font.render("Headlights", True, (0, 0, 0))
+                elif part == 'gas':
+                    text = self.font.render("Gas", True, (0, 0, 0))
+                elif part == 'spark_plugs':
+                    text = self.font.render("Spark Plugs", True, (0, 0, 0))
 
-        self.screen.blit(wheels_text, (self.parts_positions['wheels'][0] * self.cell_size, self.parts_positions['wheels'][1] * self.cell_size + self.cell_size))
-        self.screen.blit(battery_text, (self.parts_positions['battery'][0] * self.cell_size, self.parts_positions['battery'][1] * self.cell_size + self.cell_size))
-        self.screen.blit(headlights_text, (self.parts_positions['headlights'][0] * self.cell_size, self.parts_positions['headlights'][1] * self.cell_size + self.cell_size))
-        self.screen.blit(gas_text, (self.parts_positions['gas'][0] * self.cell_size, self.parts_positions['gas'][1] * self.cell_size + self.cell_size))
-        self.screen.blit(spark_plugs_text, (self.parts_positions['spark_plugs'][0] * self.cell_size, self.parts_positions['spark_plugs'][1] * self.cell_size + self.cell_size))
-
+                self.screen.blit(text, (position[0] * self.cell_size, position[1] * self.cell_size + self.cell_size))
+    
     def draw_state(self):
         state_text = self.font.render(f"Current State: {self.person.current_state.name}", True, (0, 0, 0))
         self.screen.blit(state_text, (10, 10))
@@ -93,10 +96,17 @@ class Visualization:
                     running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
+                        while self.person.path:
+                            next_step = self.person.path[0]
+                            self.person.move_to(next_step[0], next_step[1])
+                            self.person.path = self.person.path[1:]
+                            self.update()
+                            self.clock.tick(10)  # Уменьшить скорость обновления экрана
                         self.person.next_step()
-                        if self.car.is_ready():
+                        if self.person.car.is_ready():
                             print("Car is ready!")
                             running = False
             self.update()
+            self.clock.tick(60)  # Основная скорость обновления экрана
         pygame.quit()
         sys.exit()

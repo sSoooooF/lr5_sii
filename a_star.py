@@ -1,6 +1,9 @@
 import heapq
 
-def a_star(grid, start, goal):
+def a_star(grid, start, goal, obstacles=None):
+    if obstacles is None:
+        obstacles = grid.obstacles
+
     open_list = []
     heapq.heappush(open_list, (0, start))
     came_from = {start: None}
@@ -13,7 +16,7 @@ def a_star(grid, start, goal):
 
         for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
             next = current[0] + dx, current[1] + dy
-            if grid.is_valid(next[0], next[1]):
+            if grid.is_valid(next[0], next[1], obstacles):
                 new_cost = cost_so_far[current] + 1
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost

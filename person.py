@@ -2,6 +2,7 @@ from state import State
 from action import Action
 from car import Car
 from a_star import a_star
+import random
 
 class Person:
     def __init__(self, x, y, states, car, grid):
@@ -14,13 +15,18 @@ class Person:
         self.inventory = {}
         self.target = None
         self.path = []
-        self.parts_positions = {
-            'wheels': (10, 10),
-            'battery': (0, 12),
-            'headlights': (5, 14),
-            'gas': (14, 5),
-            'spark_plugs': (17, 7)
-        }
+        self.parts_positions = {}
+
+    def generate_random_parts_positions(self):
+        parts_positions = {}
+        for part in ['wheels', 'battery', 'headlights', 'gas', 'spark_plugs']:
+            while True:
+                x = random.randint(0, self.grid.width - 1)
+                y = random.randint(0, self.grid.height - 1)
+                if (x, y) not in self.grid.obstacles and (x, y) != (self.car.x, self.car.y):
+                    parts_positions[part] = (x, y)
+                    break
+        return parts_positions
 
     def move_to(self, x, y):
         if self.grid.is_valid(x, y) and (x, y) not in self.grid.obstacles:
@@ -74,6 +80,8 @@ class Person:
                 if self.current_state.name in ['pick up wheels', 'pick up battery', 'pick up headlights', 'pick up gas', 'pick up spark plugs']:
                     part_name = self.current_state.name.replace('pick up ', '')
                     self.pick_up_part(part_name)
+                    # Обновить позицию детали, чтобы она следовала за человеком
+                    self.parts_positions[part_name] = (self.x, self.y)
                     # Переход к состоянию установки детали
                     next_state_name = f'install {part_name}'
                     self.current_state = next((state for state in self.states if state.name == next_state_name), None)
@@ -88,6 +96,8 @@ class Person:
                 elif self.current_state.name in ['install wheels', 'install battery', 'install headlights', 'install gas', 'install spark plugs']:
                     part_name = self.current_state.name.replace('install ', '')
                     self.install_part(part_name)
+                    # Удалить деталь из списка позиций после установки
+                    del self.parts_positions[part_name]
                     # Переход к следующему состоянию после установки детали
                     next_state_index = self.states.index(self.current_state) + 1
                     if next_state_index < len(self.states):

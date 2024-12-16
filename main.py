@@ -5,9 +5,54 @@ from person import Person
 from grid import Grid
 from obstacle import Obstacle
 from visualization import Visualization
+import random
+from a_star import a_star
+
 def main():
     # Initialize grid
     grid = Grid(20, 20)
+
+    # Generate random parts positions
+    parts_positions = {}
+    for part in ['wheels', 'battery', 'headlights', 'gas', 'spark_plugs']:
+        while True:
+            x = random.randint(0, grid.width - 1)
+            y = random.randint(0, grid.height - 1)
+            if (x, y) not in parts_positions.values() and (x, y) != (15, 15):  # Avoid car position
+                parts_positions[part] = (x, y)
+                break
+
+    # Add obstacles randomly, avoiding parts positions and ensuring paths
+    obstacles = set()
+    for _ in range(50):  # Number of obstacles
+        while True:
+            x = random.randint(0, grid.width - 1)
+            y = random.randint(0, grid.height - 1)
+            if (x, y) not in parts_positions.values() and (x, y) != (15, 15) and (x, y) not in obstacles:
+                obstacles.add((x, y))
+                break
+
+    # Ensure there are paths to each part
+    for part, position in parts_positions.items():
+        path = a_star(grid, (0, 0), position, obstacles)
+        if not path:
+            print(f"No path to {part} at {position}, regenerating obstacles")
+            obstacles = set()
+            for _ in range(50):  # Number of obstacles
+                while True:
+                    x = random.randint(0, grid.width - 1)
+                    y = random.randint(0, grid.height - 1)
+                    if (x, y) not in parts_positions.values() and (x, y) != (15, 15) and (x, y) not in obstacles:
+                        obstacles.add((x, y))
+                        break
+            # Recheck paths
+            for part, position in parts_positions.items():
+                path = a_star(grid, (0, 0), position, obstacles)
+                if not path:
+                    print(f"Still no path to {part} at {position}, exiting")
+                    return
+
+    grid.obstacles = list(obstacles)
 
     # Initialize car
     car = Car(15, 15, 2, 4)
@@ -29,6 +74,7 @@ def main():
 
     # Initialize person
     person = Person(0, 0, states, car, grid)
+    person.parts_positions = parts_positions
 
     # Initialize visualization
     visualization = Visualization(grid, person, car)
